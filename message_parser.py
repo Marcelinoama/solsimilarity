@@ -65,16 +65,42 @@ class MessageParser:
             'source_wallets_avg_hops': None     # Média de hops
         }
         
-        # Extrai nome do token
-        token_match = re.search(r'(.+?)\s*\(([A-Za-z0-9]+)\)', message_text)
-        if token_match:
-            token_data['token_name'] = token_match.group(1).strip()
+        # Extrai nome do token - procura no início da mensagem, antes de qualquer seção com emojis
+        lines = message_text.strip().split('\n')
+        token_name = None
         
-        # Fallback para nome do token
-        if not token_data['token_name']:
-            name_fallback = re.search(r'^([^(]+)', message_text.strip())
-            if name_fallback:
-                token_data['token_name'] = name_fallback.group(1).strip()
+        # Procura o nome do token na primeira linha que não contenha emojis de seção
+        for line in lines:
+            line = line.strip()
+            if line and not any(emoji in line for emoji in ['📊', '📈', '🔍', '👨‍💻', '🏭', '🌐']):
+                # Procura por padrão "Nome (Símbolo)" na primeira linha válida
+                token_match = re.search(r'^(.+?)\s*\(([^)]+)\)(?:\s*$|\s*├)', line)
+                if token_match:
+                    token_name = token_match.group(1).strip()
+                    break
+                else:
+                    # Se não encontrar parênteses, usa a linha inteira (até o primeiro ├ se houver)
+                    if '├' in line:
+                        token_name = line.split('├')[0].strip()
+                    else:
+                        token_name = line.strip()
+                    break
+        
+        # Fallback: se não encontrou nas primeiras linhas, procura por padrão mais flexível
+        if not token_name:
+            # Procura por qualquer texto seguido de parênteses que não seja uma seção
+            token_match = re.search(r'^([^📊📈🔍👨‍💻🏭🌐]+?)\s*\(([^)]+)\)', message_text.strip())
+            if token_match:
+                token_name = token_match.group(1).strip()
+        
+        # Limpa o nome do token de caracteres desnecessários
+        if token_name:
+            # Remove emojis comuns que podem aparecer
+            token_name = re.sub(r'[🟣👀🟢🔴🟡🐋♦️]', '', token_name).strip()
+            # Remove múltiplos espaços
+            token_name = re.sub(r'\s+', ' ', token_name)
+            
+        token_data['token_name'] = token_name
         
         # 📊 Contract Address - extrai endereço de contrato
         # Busca padrões mais flexíveis para capturar o endereço
