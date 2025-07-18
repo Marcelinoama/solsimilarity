@@ -308,7 +308,8 @@ class SimilarityCalculator:
                     section_end += 1
                 
                 # Insere linha de similaridade após a seção
-                result_lines.append(f"========================> 🎯Similaridade: {similarity_pct:.0f}%")
+                emoji = " 🟢" if similarity_pct > 90.0 else ""
+                result_lines.append(f"========================> 🎯Similaridade: {similarity_pct:.0f}%{emoji}")
                 
                 # Adiciona linha vazia se a próxima linha não for vazia
                 if section_end < len(lines) and lines[section_end].strip() != '':
@@ -430,7 +431,9 @@ class SimilarityCalculator:
             comparison_lines.append(f"├ Sell Count:         {current_formatted['sell_count']:>8} | {similar_formatted['sell_count']:>8}")
             comparison_lines.append(f"├ Buyers:             {current_formatted['buyers']:>8} | {similar_formatted['buyers']:>8}")
             comparison_lines.append(f"└ Sellers:            {current_formatted['sellers']:>8} | {similar_formatted['sellers']:>8}")
-            comparison_lines.append(f"========================> 🎯Similaridade: {section_similarities.get('market_overview', 0):.0f}%")
+            market_similarity = section_similarities.get('market_overview', 0)
+            emoji = " 🟢" if market_similarity > 90.0 else ""
+            comparison_lines.append(f"========================> 🎯Similaridade: {market_similarity:.0f}%{emoji}")
             comparison_lines.append("")
         
 
@@ -450,7 +453,9 @@ class SimilarityCalculator:
             comparison_lines.append(f"├ Following Wallets:  {current_formatted['following_wallets']:>8} | {similar_formatted['following_wallets']:>8}")
             comparison_lines.append(f"├ Bluechip Holders:   {current_formatted['bluechip_holders']:>8} | {similar_formatted['bluechip_holders']:>8}")
             comparison_lines.append(f"└ Bundler Wallets:    {current_formatted['bundler_wallets']:>8} | {similar_formatted['bundler_wallets']:>8}")
-            comparison_lines.append(f"========================> 🎯Similaridade: {section_similarities.get('wallet_insights', 0):.0f}%")
+            wallet_similarity = section_similarities.get('wallet_insights', 0)
+            emoji = " 🟢" if wallet_similarity > 90.0 else ""
+            comparison_lines.append(f"========================> 🎯Similaridade: {wallet_similarity:.0f}%{emoji}")
             comparison_lines.append("")
         
         # Risk Metrics
@@ -459,7 +464,9 @@ class SimilarityCalculator:
             comparison_lines.append(f"├ Bluechip Holders:   {current_formatted['bluechip_holders_percentage']:>8} | {similar_formatted['bluechip_holders_percentage']:>8}")
             comparison_lines.append(f"├ Rat Trader Supply:  {current_formatted['rat_trader_supply_percentage']:>8} | {similar_formatted['rat_trader_supply_percentage']:>8}")
             comparison_lines.append(f"└ Bundler Supply:     {current_formatted['bundler_supply_percentage']:>8} | {similar_formatted['bundler_supply_percentage']:>8}")
-            comparison_lines.append(f"========================> 🎯Similaridade: {section_similarities.get('risk_metrics', 0):.0f}%")
+            risk_similarity = section_similarities.get('risk_metrics', 0)
+            emoji = " 🟢" if risk_similarity > 90.0 else ""
+            comparison_lines.append(f"========================> 🎯Similaridade: {risk_similarity:.0f}%{emoji}")
             comparison_lines.append("")
         
         # Top Holders
@@ -468,7 +475,9 @@ class SimilarityCalculator:
             comparison_lines.append(f"├ Top 10 Total:       {current_formatted['top_holders_percentage']:>8} | {similar_formatted['top_holders_percentage']:>8}")
             comparison_lines.append(f"├ Top 1 Holder:       {current_formatted['top1_holder_percentage']:>8} | {similar_formatted['top1_holder_percentage']:>8}")
             comparison_lines.append(f"└ Top 5 Holders:      {current_formatted['top5_holders_percentage']:>8} | {similar_formatted['top5_holders_percentage']:>8}")
-            comparison_lines.append(f"========================> 🎯Similaridade: {section_similarities.get('top_holders', 0):.0f}%")
+            top_holders_similarity = section_similarities.get('top_holders', 0)
+            emoji = " 🟢" if top_holders_similarity > 90.0 else ""
+            comparison_lines.append(f"========================> 🎯Similaridade: {top_holders_similarity:.0f}%{emoji}")
             comparison_lines.append("")
         
         # Source Wallets
@@ -477,7 +486,9 @@ class SimilarityCalculator:
             comparison_lines.append(f"├ Percentage:         {current_formatted['source_wallets_percentage']:>8} | {similar_formatted['source_wallets_percentage']:>8}")
             comparison_lines.append(f"├ Count:              {current_formatted['source_wallets_count']:>8} | {similar_formatted['source_wallets_count']:>8}")
             comparison_lines.append(f"└ Avg Hops:           {current_formatted['source_wallets_avg_hops']:>8} | {similar_formatted['source_wallets_avg_hops']:>8}")
-            comparison_lines.append(f"========================> 🎯Similaridade: {section_similarities.get('source_wallets', 0):.0f}%")
+            source_similarity = section_similarities.get('source_wallets', 0)
+            emoji = " 🟢" if source_similarity > 90.0 else ""
+            comparison_lines.append(f"========================> 🎯Similaridade: {source_similarity:.0f}%{emoji}")
             comparison_lines.append("")
         
         # Se não há seções com similaridade > 30%, exibe resumo básico
@@ -549,7 +560,9 @@ class SimilarityCalculator:
             tree_char = "└" if i == len(section_keys) - 1 else "├"
             # Alinha o nome da seção à esquerda com espaçamento fixo
             padded_name = f"{section_name}:".ljust(max_section_name_length + 1)
-            report_lines.append(f"{tree_char} {padded_name}      {similarity_value:.1f}%")
+            # Adiciona emoji verde se similaridade > 90%
+            emoji = " 🟢" if similarity_value > 90.0 else ""
+            report_lines.append(f"{tree_char} {padded_name}      {similarity_value:.1f}%{emoji}")
         
         report_lines.append("")
         report_lines.append("Lado esquerdo ATUAL direito BANCO DE DADOS")
@@ -578,6 +591,16 @@ class SimilarityCalculator:
         
         # Converte URLs visíveis em hiperlinks HTML clicáveis
         return self._convert_urls_to_hyperlinks(social_links_text)
+    
+    def process_all_links_in_message(self, message: str) -> str:
+        """Processa TODA a mensagem e converte todos os links encontrados para hiperlinks HTML"""
+        if not message:
+            return ""
+        
+        # Aplica conversão de links em toda a mensagem
+        processed_message = self._convert_urls_to_hyperlinks(message)
+        
+        return processed_message
     
     def _apply_invisible_hyperlinks(self, social_text: str, full_message: str, entities: list) -> str:
         """Aplica hiperlinks invisíveis da mensagem aos textos dos social links - versão robusta"""
@@ -649,7 +672,10 @@ class SimilarityCalculator:
         """Converte URLs em texto para hiperlinks HTML clicáveis - detecta múltiplos formatos"""
         result = text
         
-        # 1. Detectar e converter links markdown [texto](url)
+        # 1. Corrigir "Perfil" órfão ANTES de converter URLs - derivar URL do perfil a partir da URL do Twitter
+        result = self._fix_orphan_profile_links(result)
+        
+        # 2. Detectar e converter links markdown [texto](url)
         markdown_pattern = r'\[([^\]]+)\]\((https?://[^\)]+)\)'
         def replace_markdown(match):
             texto = match.group(1)
@@ -657,7 +683,7 @@ class SimilarityCalculator:
             return f'<a href="{url}">{texto}</a>'
         result = re.sub(markdown_pattern, replace_markdown, result)
         
-        # 2. Detectar e converter URLs em parênteses (url) - apenas se não foram processadas como markdown
+        # 3. Detectar e converter URLs em parênteses (url) - apenas se não foram processadas como markdown
         parentheses_pattern = r'\((https?://[^\)]+)\)'
         def replace_parentheses(match):
             url = match.group(1)
@@ -666,10 +692,10 @@ class SimilarityCalculator:
         if '[' not in text or '](' not in text:
             result = re.sub(parentheses_pattern, replace_parentheses, result)
         
-        # 3. Preservar links HTML existentes (não modificar)
+        # 4. Preservar links HTML existentes (não modificar)
         # Links HTML já estão no formato correto: <a href="url">texto</a>
         
-        # 4. Detectar URLs soltas e converter (apenas se não estão dentro de tags HTML ou já processadas)
+        # 5. Detectar URLs soltas e converter (apenas se não estão dentro de tags HTML ou já processadas)
         if '<a href=' not in result:
             loose_url_pattern = r'(https?://[^\s<>()]+)'
             def replace_loose_url(match):
@@ -677,4 +703,91 @@ class SimilarityCalculator:
                 return f'<a href="{url}">{url}</a>'
             result = re.sub(loose_url_pattern, replace_loose_url, result)
         
-        return result 
+        return result
+    
+    def _fix_orphan_profile_links(self, text: str) -> str:
+        """Corrige links órfãos de 'Perfil', 'Website' e outros elementos sem URL"""
+        lines = text.split('\n')
+        result_lines = []
+        
+        i = 0
+        while i < len(lines):
+            line = lines[i]
+            result_lines.append(line)
+            
+            # Procura por linha com URL e próxima linha sendo elemento órfão
+            if ('├' in line or '└' in line) and '(' in line:
+                # Extrai URL da linha atual
+                url_match = re.search(r'\((https?://[^)]+)\)', line)
+                if url_match and i + 1 < len(lines):
+                    current_url = url_match.group(1)
+                    next_line = lines[i + 1]
+                    
+                    # Verifica se a próxima linha é um elemento órfão (sem URL própria)
+                    orphan_patterns = [
+                        ('│ └ Perfil', '│ └ Perfil'),
+                        ('└ Perfil', '└ Perfil'),
+                        ('│ └ Website', '│ └ Website'),
+                        ('└ Website', '└ Website'),
+                        ('│ └ Communities', '│ └ Communities'),
+                        ('└ Communities', '└ Communities')
+                    ]
+                    
+                    for pattern, replacement_base in orphan_patterns:
+                        if pattern in next_line and '(' not in next_line:
+                            derived_url = ""
+                            
+                            # Deriva URL específica baseada no tipo de elemento
+                            if 'Perfil' in pattern and ('twitter.com' in current_url or 'x.com' in current_url):
+                                derived_url = self._derive_profile_url_from_twitter(current_url)
+                            elif 'Website' in pattern:
+                                # Para Website, usa a URL original se for um link válido de website
+                                if any(domain in current_url for domain in ['t.co/', 'bit.ly/', 'tinyurl.com/', 'short.link/', '.com', '.org', '.net', '.io']):
+                                    derived_url = current_url
+                            elif 'Communities' in pattern and ('twitter.com' in current_url or 'x.com' in current_url):
+                                # Para Communities, mantém a URL das communities
+                                derived_url = current_url
+                            
+                            if derived_url:
+                                # Substitui a linha órfã pela versão com link
+                                fixed_line = next_line.replace(pattern, f'{replacement_base} ({derived_url})')
+                                
+                                # Remove a linha antiga e adiciona a corrigida
+                                result_lines.pop()  # Remove a linha anterior que já foi adicionada
+                                result_lines.append(line)  # Re-adiciona linha original
+                                result_lines.append(fixed_line)  # Adiciona linha corrigida
+                                i += 1  # Pula a próxima linha pois já foi processada
+                                break
+            
+            i += 1
+        
+        return '\n'.join(result_lines)
+    
+    def _derive_profile_url_from_twitter(self, twitter_url: str) -> str:
+        """Deriva URL do perfil a partir de uma URL do Twitter"""
+        try:
+            # Para URLs de busca como: https://x.com/search?q=pump%20below%20ico&src=typed_query
+            if 'search?' in twitter_url and 'q=' in twitter_url:
+                # Extrai o termo de busca e tenta criar um link de perfil genérico
+                import urllib.parse
+                parsed = urllib.parse.urlparse(twitter_url)
+                query_params = urllib.parse.parse_qs(parsed.query)
+                if 'q' in query_params:
+                    search_term = query_params['q'][0]
+                    # Remove caracteres especiais e espaços
+                    clean_term = re.sub(r'[^a-zA-Z0-9_]', '', search_term.replace(' ', ''))
+                    if clean_term:
+                        return f"https://x.com/{clean_term}"
+            
+            # Para URLs de status/tweet como: https://x.com/username/status/123456
+            username_match = re.search(r'https?://(?:twitter\.com|x\.com)/([^/\?]+)', twitter_url)
+            if username_match:
+                username = username_match.group(1)
+                # Ignora casos especiais como 'search', 'i', etc.
+                if username not in ['search', 'i', 'intent', 'hashtag']:
+                    return f"https://x.com/{username}"
+            
+        except Exception:
+            pass
+        
+        return "" 

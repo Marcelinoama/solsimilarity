@@ -1,0 +1,117 @@
+2025-07-18 20:36:34,984 - bot - INFO - 🤖 Bot de Similaridade iniciado!
+2025-07-18 20:36:34,984 - bot - INFO - 📊 Grupo de banco de dados: -4876022857
+2025-07-18 20:36:34,984 - bot - INFO - 🔍 Grupo de comparação: -1002725981594
+2025-07-18 20:36:34,984 - bot - INFO - 🔔 Grupo de notificação: -1002807343035
+2025-07-18 20:36:34,984 - bot - INFO - 📝 Formato: Monospace ativado
+2025-07-18 20:36:34,984 - bot - INFO - 🔧 Comandos disponíveis: /database, /stats, /clear, /delete, /del, /threshold, /reset, /cas, /backup, /restore, /getid, /help
+2025-07-18 20:36:35,029 - httpx - INFO - HTTP Request: POST https://api.telegram.org/bot7740411827:AAFl5Fb_tuntP-_KJ2TFa8IE96dSjkn9Lig/getMe "HTTP/1.1 200 OK"
+2025-07-18 20:36:35,042 - httpx - INFO - HTTP Request: POST https://api.telegram.org/bot7740411827:AAFl5Fb_tuntP-_KJ2TFa8IE96dSjkn9Lig/deleteWebhook "HTTP/1.1 200 OK"
+2025-07-18 20:36:35,043 - telegram.ext.Application - INFO - Application started
+2025-07-18 20:36:42,301 - httpx - INFO - HTTP Request: POST https://api.telegram.org/bot7740411827:AAFl5Fb_tuntP-_KJ2TFa8IE96dSjkn9Lig/getUpdates "HTTP/1.1 409 Conflict"
+2025-07-18 20:36:42,302 - telegram.ext.Updater - ERROR - Error while getting Updates: Conflict: terminated by other getUpdates request; make sure that only one bot instance is running
+2025-07-18 20:36:42,302 - telegram.ext.Application - ERROR - No error handlers are registered, logging exception.
+Traceback (most recent call last):
+  File "/usr/local/lib/python3.10/dist-packages/telegram/ext/_updater.py", line 688, in _network_loop_retry
+    if not await action_cb():
+  File "/usr/local/lib/python3.10/dist-packages/telegram/ext/_updater.py", line 384, in polling_action_cb
+    raise exc
+  File "/usr/local/lib/python3.10/dist-packages/telegram/ext/_updater.py", line 373, in polling_action_cb
+    updates = await self.bot.get_updates(
+  File "/usr/local/lib/python3.10/dist-packages/telegram/ext/_extbot.py", line 558, in get_updates
+    updates = await super().get_updates(
+  File "/usr/local/lib/python3.10/dist-packages/telegram/_bot.py", line 525, in decorator
+    result = await func(self, *args, **kwargs)  # skipcq: PYL-E1102
+  File "/usr/local/lib/python3.10/dist-packages/telegram/_bot.py", line 3584, in get_updates
+    await self._post(
+  File "/usr/local/lib/python3.10/dist-packages/telegram/_bot.py", line 613, in _post
+    return await self._do_post(
+  File "/usr/local/lib/python3.10/dist-packages/telegram/ext/_extbot.py", line 340, in _do_post
+    return await super()._do_post(
+  File "/usr/local/lib/python3.10/dist-packages/telegram/_bot.py", line 641, in _do_post
+    return await request.post(
+  File "/usr/local/lib/python3.10/dist-packages/telegram/request/_baserequest.py", line 200, in post
+    result = await self._request_wrapper(
+  File "/usr/local/lib/python3.10/dist-packages/telegram/request/_baserequest.py", line 381, in _request_wrapper
+    raise Conflict(message)
+telegram.error.Conflict: Conflict: terminated by other getUpdates request; make sure that only one bot instance is running
+2025-07-18 20:36:47,340 - httpx - INFO - HTTP Request: POST https://api.telegram.org/bot7740411827:AAFl5Fb_tuntP-_KJ2TFa8IE96dSjkn9Lig/getUpdates "HTTP/1.1 409 Conflict"
+2025-07-18 20:36:47,341 - telegram.ext.Updater - ERROR - Error while getting Updates: Conflict: terminated by other getUpdates request; make sure that only one bot instance is running
+2025-07-18 20:36:47,341 - telegram.ext.Application - ERROR - No error handlers are registered, logging exception.
+Traceback (most recent call last):
+  File "/usr/local/lib/python3.10/dist-packages/telegram/ext/_updater.py", line 688, in _network_loop_retry
+    if not await action_cb():
+  File "/usr/local/lib/python3.10/dist-packages/telegram/ext/_updater.py", line 384, in polling_action_cb
+    raise exc
+  File "/usr/local/lib/python3.10/dist-packages/telegram/ext/_updater.py", line 373, in polling_action_cb
+    updates = await self.bot.get_updates(
+  File "/usr/local/lib/python3.10/dist-packages/telegram/ext/_extbot.py", line 558, in get_updates
+    updates = await super().get_updates(
+  File "/usr/local/lib/python3.10/dist-packages/telegram/_bot.py", line 525, in decorator
+    result = await func(self, *args, **kwargs)  # skipcq: PYL-E1102
+  File "/usr/local/lib/python3.10/dist-packages/telegram/_bot.py", line 3584, in get_updates
+    await self._post(
+  File "/usr/local/lib/python3.10/dist-packages/telegram/_bot.py", line 613, in _post
+    return await self._do_post(
+  File "/usr/local/lib/python3.10/dist-packages/telegram/ext/_extbot.py", line 340, in _do_post
+    return await super()._do_post(
+  File "/usr/local/lib/python3.10/dist-packages/telegram/_bot.py", line 641, in _do_post
+    return await request.post(
+  File "/usr/local/lib/python3.10/dist-packages/telegram/request/_baserequest.py", line 200, in post
+    result = await self._request_wrapper(
+  File "/usr/local/lib/python3.10/dist-packages/telegram/request/_baserequest.py", line 381, in _request_wrapper
+    raise Conflict(message)
+telegram.error.Conflict: Conflict: terminated by other getUpdates request; make sure that only one bot instance is running
+2025-07-18 20:36:53,376 - httpx - INFO - HTTP Request: POST https://api.telegram.org/bot7740411827:AAFl5Fb_tuntP-_KJ2TFa8IE96dSjkn9Lig/getUpdates "HTTP/1.1 409 Conflict"
+2025-07-18 20:36:53,377 - telegram.ext.Updater - ERROR - Error while getting Updates: Conflict: terminated by other getUpdates request; make sure that only one bot instance is running
+2025-07-18 20:36:53,377 - telegram.ext.Application - ERROR - No error handlers are registered, logging exception.
+Traceback (most recent call last):
+  File "/usr/local/lib/python3.10/dist-packages/telegram/ext/_updater.py", line 688, in _network_loop_retry
+    if not await action_cb():
+  File "/usr/local/lib/python3.10/dist-packages/telegram/ext/_updater.py", line 384, in polling_action_cb
+    raise exc
+  File "/usr/local/lib/python3.10/dist-packages/telegram/ext/_updater.py", line 373, in polling_action_cb
+    updates = await self.bot.get_updates(
+  File "/usr/local/lib/python3.10/dist-packages/telegram/ext/_extbot.py", line 558, in get_updates
+    updates = await super().get_updates(
+  File "/usr/local/lib/python3.10/dist-packages/telegram/_bot.py", line 525, in decorator
+    result = await func(self, *args, **kwargs)  # skipcq: PYL-E1102
+  File "/usr/local/lib/python3.10/dist-packages/telegram/_bot.py", line 3584, in get_updates
+    await self._post(
+  File "/usr/local/lib/python3.10/dist-packages/telegram/_bot.py", line 613, in _post
+    return await self._do_post(
+  File "/usr/local/lib/python3.10/dist-packages/telegram/ext/_extbot.py", line 340, in _do_post
+    return await super()._do_post(
+  File "/usr/local/lib/python3.10/dist-packages/telegram/_bot.py", line 641, in _do_post
+    return await request.post(
+  File "/usr/local/lib/python3.10/dist-packages/telegram/request/_baserequest.py", line 200, in post
+    result = await self._request_wrapper(
+  File "/usr/local/lib/python3.10/dist-packages/telegram/request/_baserequest.py", line 381, in _request_wrapper
+    raise Conflict(message)
+telegram.error.Conflict: Conflict: terminated by other getUpdates request; make sure that only one bot instance is running
+2025-07-18 20:37:00,914 - httpx - INFO - HTTP Request: POST https://api.telegram.org/bot7740411827:AAFl5Fb_tuntP-_KJ2TFa8IE96dSjkn9Lig/getUpdates "HTTP/1.1 409 Conflict"
+2025-07-18 20:37:00,914 - telegram.ext.Updater - ERROR - Error while getting Updates: Conflict: terminated by other getUpdates request; make sure that only one bot instance is running
+2025-07-18 20:37:00,915 - telegram.ext.Application - ERROR - No error handlers are registered, logging exception.
+Traceback (most recent call last):
+  File "/usr/local/lib/python3.10/dist-packages/telegram/ext/_updater.py", line 688, in _network_loop_retry
+    if not await action_cb():
+  File "/usr/local/lib/python3.10/dist-packages/telegram/ext/_updater.py", line 384, in polling_action_cb
+    raise exc
+  File "/usr/local/lib/python3.10/dist-packages/telegram/ext/_updater.py", line 373, in polling_action_cb
+    updates = await self.bot.get_updates(
+  File "/usr/local/lib/python3.10/dist-packages/telegram/ext/_extbot.py", line 558, in get_updates
+    updates = await super().get_updates(
+  File "/usr/local/lib/python3.10/dist-packages/telegram/_bot.py", line 525, in decorator
+    result = await func(self, *args, **kwargs)  # skipcq: PYL-E1102
+  File "/usr/local/lib/python3.10/dist-packages/telegram/_bot.py", line 3584, in get_updates
+    await self._post(
+  File "/usr/local/lib/python3.10/dist-packages/telegram/_bot.py", line 613, in _post
+    return await self._do_post(
+  File "/usr/local/lib/python3.10/dist-packages/telegram/ext/_extbot.py", line 340, in _do_post
+    return await super()._do_post(
+  File "/usr/local/lib/python3.10/dist-packages/telegram/_bot.py", line 641, in _do_post
+    return await request.post(
+  File "/usr/local/lib/python3.10/dist-packages/telegram/request/_baserequest.py", line 200, in post
+    result = await self._request_wrapper(
+  File "/usr/local/lib/python3.10/dist-packages/telegram/request/_baserequest.py", line 381, in _request_wrapper
+    raise Conflict(message)
+telegram.error.Conflict: Conflict: terminated by other getUpdates request; make sure that only one bot instance is running
