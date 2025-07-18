@@ -606,18 +606,16 @@ class SimilarityCalculator:
                 # Tenta encontrar palavras-chave na seção Social Links
                 potential_matches = []
                 
-                # Lista de palavras-chave comuns nos social links - ordem de prioridade
+                # Lista de palavras-chave comuns nos social links
                 if 'twitter' in entity.url.lower() or 'x.com' in entity.url.lower():
-                    potential_matches = ['Perfil', 'Profile', 'Twitter']  # Perfil primeiro para prioridade
+                    potential_matches = ['Twitter', 'Perfil', 'Profile']
                 elif 'axiom' in entity.url.lower():
                     potential_matches = ['AXI', 'Axiom']
                 elif 'telegram' in entity.url.lower():
                     potential_matches = ['Telegram', 'TG']
                 else:
-                    # Tenta usar o próprio texto da entidade e palavras genéricas
-                    potential_matches = [entity_text, 'Perfil', 'Profile']
-                
-                logger.info(f"🎯 DEBUG: Procurando matches para: {potential_matches}")
+                    # Tenta usar o próprio texto da entidade
+                    potential_matches = [entity_text]
                 
                 # Procura matches na seção Social Links
                 for match_word in potential_matches:
@@ -627,8 +625,6 @@ class SimilarityCalculator:
                     match = re.search(pattern, result_text, re.IGNORECASE)
                     
                     if match:
-                        logger.info(f"🎯 DEBUG: Match encontrado: '{match.group()}' na posição {match.start()}-{match.end()}")
-                        
                         # Verifica se já não foi processado
                         if f'<a href="{entity.url}">' not in result_text:
                             # Substitui a palavra pelo link HTML
@@ -639,35 +635,25 @@ class SimilarityCalculator:
                         else:
                             logger.info(f"🔍 DEBUG: Link '{match.group()}' já foi processado")
                             break
-                    else:
-                        logger.info(f"❌ DEBUG: Palavra '{match_word}' não encontrada no texto")
                 
                 if not any(re.search(r'\b' + re.escape(match_word) + r'\b', result_text, re.IGNORECASE) for match_word in potential_matches):
                     logger.info(f"⚠️ DEBUG: Nenhum match encontrado para '{entity_text}' com URL {entity.url}")
-                    # Log adicional para debug do texto social
-                    logger.info(f"🔍 DEBUG: Texto social atual: {result_text[:200]}...")
                     
             except Exception as e:
                 logger.error(f"❌ DEBUG: Erro processando entidade {i+1}: {e}")
         
         logger.info(f"🎯 DEBUG: Total de links aplicados: {applied_links}")
-        logger.info(f"📝 DEBUG: Texto final: {result_text[:200]}...")
         return result_text
     
     def _convert_urls_to_hyperlinks(self, text: str) -> str:
         """Converte URLs em texto para hiperlinks HTML clicáveis - detecta múltiplos formatos"""
-        import logging
-        logger = logging.getLogger(__name__)
-        
         result = text
-        logger.info(f"🔗 DEBUG: Processando URLs no texto: {result[:200]}...")
         
         # 1. Detectar e converter links markdown [texto](url)
         markdown_pattern = r'\[([^\]]+)\]\((https?://[^\)]+)\)'
         def replace_markdown(match):
             texto = match.group(1)
             url = match.group(2)
-            logger.info(f"📝 DEBUG: Link markdown encontrado: [{texto}]({url})")
             return f'<a href="{url}">{texto}</a>'
         result = re.sub(markdown_pattern, replace_markdown, result)
         
@@ -675,39 +661,20 @@ class SimilarityCalculator:
         parentheses_pattern = r'\((https?://[^\)]+)\)'
         def replace_parentheses(match):
             url = match.group(1)
-            logger.info(f"📝 DEBUG: URL em parênteses encontrada: ({url})")
             return f'(<a href="{url}">{url}</a>)'
         # Só aplicar se não há links markdown processados
         if '[' not in text or '](' not in text:
             result = re.sub(parentheses_pattern, replace_parentheses, result)
         
-        # 3. NOVO: Detectar padrão específico "Perfil - XXX KeyFollowers" e tentar aplicar link baseado em contexto
-        perfil_pattern = r'(Perfil)\s*-\s*(\d+\s*KeyFollowers)'
-        perfil_matches = list(re.finditer(perfil_pattern, result, re.IGNORECASE))
-        if perfil_matches and '<a href=' not in result:
-            logger.info(f"🎯 DEBUG: Encontrado padrão Perfil sem link - tentando detectar URL próxima")
-            
-            # Procura por URLs próximas no texto original que possam ser do perfil
-            twitter_url_pattern = r'(https?://(?:twitter\.com|x\.com)/[^\s\)]+)'
-            twitter_urls = re.findall(twitter_url_pattern, text, re.IGNORECASE)
-            
-            if twitter_urls:
-                # Aplica o primeiro URL do Twitter/X encontrado ao Perfil
-                twitter_url = twitter_urls[0]
-                logger.info(f"🔗 DEBUG: Aplicando URL {twitter_url} ao Perfil")
-                result = re.sub(perfil_pattern, f'<a href="{twitter_url}">\\1</a> - \\2', result, flags=re.IGNORECASE)
-        
-        # 4. Preservar links HTML existentes (não modificar)
+        # 3. Preservar links HTML existentes (não modificar)
         # Links HTML já estão no formato correto: <a href="url">texto</a>
         
-        # 5. Detectar URLs soltas e converter (apenas se não estão dentro de tags HTML ou já processadas)
+        # 4. Detectar URLs soltas e converter (apenas se não estão dentro de tags HTML ou já processadas)
         if '<a href=' not in result:
             loose_url_pattern = r'(https?://[^\s<>()]+)'
             def replace_loose_url(match):
                 url = match.group(1)
-                logger.info(f"📝 DEBUG: URL solta encontrada: {url}")
                 return f'<a href="{url}">{url}</a>'
             result = re.sub(loose_url_pattern, replace_loose_url, result)
         
-        logger.info(f"✅ DEBUG: Resultado final da conversão de URLs: {result[:200]}...")
         return result 
