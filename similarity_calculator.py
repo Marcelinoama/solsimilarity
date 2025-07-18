@@ -556,4 +556,125 @@ class SimilarityCalculator:
         report_lines.append("──────────────────────────────────────")
         report_lines.append("```")
         
-        return '\n'.join(report_lines) 
+        return '\n'.join(report_lines)
+    
+    def get_social_links_section(self, current_message: str, message_entities: Optional[List] = None) -> str:
+        """Copia a seção completa de Social Links da mensagem original e aplica hiperlinks invisíveis"""
+        if not current_message:
+            return ""
+        
+        # Procura e copia a seção completa de Social Links
+        social_section_match = re.search(r'(🌐\s*Social Links:.*?)(?=\n\n|\n[📊📈👥🔍]|$)', current_message, re.DOTALL)
+        if not social_section_match:
+            return ""
+        
+        social_links_text = social_section_match.group(1).strip()
+        
+        # Se há entidades de mensagem, aplica hiperlinks invisíveis
+        if message_entities:
+            social_links_with_entities = self._apply_invisible_hyperlinks(social_links_text, current_message, message_entities)
+            if social_links_with_entities:
+                social_links_text = social_links_with_entities
+        
+        # Converte URLs visíveis em hiperlinks HTML clicáveis
+        return self._convert_urls_to_hyperlinks(social_links_text)
+    
+    def _apply_invisible_hyperlinks(self, social_text: str, full_message: str, entities: list) -> str:
+        """Aplica hiperlinks invisíveis da mensagem aos textos dos social links - versão robusta"""
+        import logging
+        logger = logging.getLogger(__name__)
+        
+        # Encontra todas as entidades text_link na mensagem
+        text_link_entities = [e for e in entities if e.type == 'text_link' and hasattr(e, 'url')]
+        
+        if not text_link_entities:
+            logger.info("🔍 DEBUG: Nenhuma entidade text_link encontrada")
+            return social_text
+        
+        logger.info(f"🔍 DEBUG: {len(text_link_entities)} entidades text_link encontradas")
+        
+        result_text = social_text
+        applied_links = 0
+        
+        # Para cada entidade text_link, tenta mapear para palavras na seção Social Links
+        for i, entity in enumerate(text_link_entities):
+            try:
+                # Extrai o texto da entidade da mensagem completa
+                entity_text = full_message[entity.offset:entity.offset + entity.length]
+                logger.info(f"🔗 DEBUG: Entidade {i+1}: '{entity_text}' -> {entity.url}")
+                
+                # Tenta encontrar palavras-chave na seção Social Links
+                potential_matches = []
+                
+                # Lista de palavras-chave comuns nos social links
+                if 'twitter' in entity.url.lower() or 'x.com' in entity.url.lower():
+                    potential_matches = ['Twitter', 'Perfil', 'Profile']
+                elif 'axiom' in entity.url.lower():
+                    potential_matches = ['AXI', 'Axiom']
+                elif 'telegram' in entity.url.lower():
+                    potential_matches = ['Telegram', 'TG']
+                else:
+                    # Tenta usar o próprio texto da entidade
+                    potential_matches = [entity_text]
+                
+                # Procura matches na seção Social Links
+                for match_word in potential_matches:
+                    # Procura a palavra exata no texto (case insensitive)
+                    import re
+                    pattern = r'\b' + re.escape(match_word) + r'\b'
+                    match = re.search(pattern, result_text, re.IGNORECASE)
+                    
+                    if match:
+                        # Verifica se já não foi processado
+                        if f'<a href="{entity.url}">' not in result_text:
+                            # Substitui a palavra pelo link HTML
+                            result_text = result_text[:match.start()] + f'<a href="{entity.url}">{match.group()}</a>' + result_text[match.end():]
+                            applied_links += 1
+                            logger.info(f"✅ DEBUG: Link aplicado - '{match.group()}' -> {entity.url}")
+                            break
+                        else:
+                            logger.info(f"🔍 DEBUG: Link '{match.group()}' já foi processado")
+                            break
+                
+                if not any(re.search(r'\b' + re.escape(match_word) + r'\b', result_text, re.IGNORECASE) for match_word in potential_matches):
+                    logger.info(f"⚠️ DEBUG: Nenhum match encontrado para '{entity_text}' com URL {entity.url}")
+                    
+            except Exception as e:
+                logger.error(f"❌ DEBUG: Erro processando entidade {i+1}: {e}")
+        
+        logger.info(f"🎯 DEBUG: Total de links aplicados: {applied_links}")
+        return result_text
+    
+    def _convert_urls_to_hyperlinks(self, text: str) -> str:
+        """Converte URLs em texto para hiperlinks HTML clicáveis - detecta múltiplos formatos"""
+        result = text
+        
+        # 1. Detectar e converter links markdown [texto](url)
+        markdown_pattern = r'\[([^\]]+)\]\((https?://[^\)]+)\)'
+        def replace_markdown(match):
+            texto = match.group(1)
+            url = match.group(2)
+            return f'<a href="{url}">{texto}</a>'
+        result = re.sub(markdown_pattern, replace_markdown, result)
+        
+        # 2. Detectar e converter URLs em parênteses (url) - apenas se não foram processadas como markdown
+        parentheses_pattern = r'\((https?://[^\)]+)\)'
+        def replace_parentheses(match):
+            url = match.group(1)
+            return f'(<a href="{url}">{url}</a>)'
+        # Só aplicar se não há links markdown processados
+        if '[' not in text or '](' not in text:
+            result = re.sub(parentheses_pattern, replace_parentheses, result)
+        
+        # 3. Preservar links HTML existentes (não modificar)
+        # Links HTML já estão no formato correto: <a href="url">texto</a>
+        
+        # 4. Detectar URLs soltas e converter (apenas se não estão dentro de tags HTML ou já processadas)
+        if '<a href=' not in result:
+            loose_url_pattern = r'(https?://[^\s<>()]+)'
+            def replace_loose_url(match):
+                url = match.group(1)
+                return f'<a href="{url}">{url}</a>'
+            result = re.sub(loose_url_pattern, replace_loose_url, result)
+        
+        return result 

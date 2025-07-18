@@ -879,3 +879,6 @@ telegram.error.Conflict: Conflict: terminated by other getUpdates request; make 
 2025-07-16 23:15:55,297 - httpx - INFO - HTTP Request: POST https://api.telegram.org/bot7740411827:AAFl5Fb_tuntP-_KJ2TFa8IE96dSjkn9Lig/getUpdates "HTTP/1.1 200 OK"
 2025-07-16 23:15:55,298 - telegram.ext.Application - INFO - Application is stopping. This might take a moment.
 2025-07-16 23:15:55,298 - telegram.ext.Application - INFO - Application.stop() complete
+2025-07-18 18:26:38,801 - __main__ - INFO - ✅ Bot iniciado com sucesso - versão com social links clicáveis
+2025-07-18 18:42:11,131 - __main__ - INFO - 🔄 Testing bot functionality - 18:42:11
+2025-07-18 18:59:28,183 - __main__ - INFO - 🔍 TESTE: Verificando se bot está processando mensagens - 18:59:28

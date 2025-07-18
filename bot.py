@@ -42,6 +42,20 @@ class SimilarityBot:
             # Parse da mensagem
             token_data = self.parser.parse_token_message(message_text)
             
+            # Captura entidades de link da mensagem (para hiperlinks invisíveis)
+            message_entities = update.message.entities if update.message.entities else []
+            token_data['message_entities'] = message_entities
+            
+            # DEBUG: Log detalhado das entidades para debug
+            if message_entities:
+                logger.info(f"🔍 DEBUG: {len(message_entities)} entidades encontradas na mensagem")
+                for i, entity in enumerate(message_entities):
+                    text_slice = message_text[entity.offset:entity.offset + entity.length] if entity.offset < len(message_text) else "ERRO"
+                    entity_url = getattr(entity, 'url', 'N/A')
+                    logger.info(f"  📋 Entidade {i+1}: tipo='{entity.type}', offset={entity.offset}, length={entity.length}, texto='{text_slice}', url='{entity_url}'")
+            else:
+                logger.info("🔍 DEBUG: Nenhuma entidade encontrada na mensagem")
+            
             if str(chat_id) == Config.DATABASE_GROUP_ID:
                 # Grupo de banco de dados - salva a informação
                 await self._handle_database_message(token_data, message_id, chat_id, update, context)
@@ -170,6 +184,15 @@ class SimilarityBot:
                 if enhanced_message.endswith("```"):
                     enhanced_message = enhanced_message[:-3]  # Remove apenas os últimos 3 caracteres
                 enhanced_message += side_by_side_comparison
+                
+                # Adiciona social links no rodapé se estiverem disponíveis
+                social_links_section = self.similarity_calculator.get_social_links_section(
+                    token_data.get('raw_message', ''), 
+                    token_data.get('message_entities', [])
+                )
+                if social_links_section:
+                    enhanced_message += "\n" + social_links_section + "\n"
+                
                 enhanced_message += "```"
             
             # Envia notificação APENAS para o grupo de notificação
@@ -208,8 +231,6 @@ class SimilarityBot:
             # Lista de títulos de seções que devem aparecer em formatação normal
             section_titles = [
                 'Market Overview:',
-
-
                 'Wallet Insights:',
                 'Risk Metrics:',
                 'Top 10 Holders:',
@@ -218,7 +239,8 @@ class SimilarityBot:
                 'Wallet Insights:',
                 'Risk Metrics:',
                 'Source Wallets:',
-                'Similaridades por seção:'
+                'Similaridades por seção:',
+                'Social Links:'
             ]
             
             # Lista de elementos adicionais que devem aparecer em formatação normal
@@ -262,9 +284,12 @@ class SimilarityBot:
                         'Lado esquerdo ATUAL direito BANCO DE DADOS'
                     ])
                     
-                    # Escapa caracteres HTML perigosos (exceto para linhas de similaridade)
-                    if is_similarity_line:
-                        escaped_line = line  # Não escapa caracteres nas linhas de similaridade
+                    # Verifica se é uma linha de social links com hiperlinks HTML
+                    is_social_link_line = '<a href=' in line
+                    
+                    # Escapa caracteres HTML perigosos (exceto para linhas de similaridade e social links)
+                    if is_similarity_line or is_social_link_line:
+                        escaped_line = line  # Não escapa caracteres nas linhas de similaridade e social links
                     else:
                         escaped_line = line.replace('&', '&amp;').replace('<', '&lt;').replace('>', '&gt;')
                     
@@ -309,6 +334,9 @@ class SimilarityBot:
                             formatted_lines.append(escaped_line)
                     elif is_similarity_line:
                         # Linha de similaridade: toda a linha em formatação normal
+                        formatted_lines.append(escaped_line)
+                    elif is_social_link_line:
+                        # Linha de social links com hiperlinks: preserva formatação HTML
                         formatted_lines.append(escaped_line)
                     else:
                         # Outras linhas com formatação monospace
