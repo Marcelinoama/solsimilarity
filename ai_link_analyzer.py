@@ -33,18 +33,10 @@ class AILinkAnalyzer:
         # Padrão para encontrar URLs soltas
         loose_links = re.findall(r'(https?://[^\s<>()]+)', social_links_text)
         
-        # Combina todos os links e normaliza antes de deduplicar
-        all_raw_links = html_links + parentheses_links + loose_links
-        normalized_links = []
-        seen_normalized = set()
+        # Combina todos os links únicos
+        all_links = list(set(html_links + parentheses_links + loose_links))
         
-        for url in all_raw_links:
-            normalized_url = self._normalize_url(url)
-            if normalized_url not in seen_normalized:
-                seen_normalized.add(normalized_url)
-                normalized_links.append(normalized_url)
-        
-        for url in normalized_links:
+        for url in all_links:
             # Identifica o tipo de link baseado na URL
             link_type = self._identify_link_type(url)
             links.append({
@@ -54,22 +46,6 @@ class AILinkAnalyzer:
             })
         
         return links
-    
-    def _normalize_url(self, url: str) -> str:
-        """Normaliza URL removendo caracteres desnecessários e decodificando"""
-        if not url:
-            return ""
-        
-        # Remove espaços e aspas no início/fim
-        url = url.strip().strip('"').strip("'")
-        
-        # Remove %22 (aspas duplas codificadas) no final
-        url = re.sub(r'%22+$', '', url)
-        
-        # Remove múltiplas aspas duplas no final
-        url = re.sub(r'"+$', '', url)
-        
-        return url
     
     def _identify_link_type(self, url: str) -> str:
         """Identifica o tipo de link baseado na URL"""
@@ -264,16 +240,11 @@ Descrição:"""
                 continue
                 
             # Formata a linha com link clicável e descrição
-            is_axiom_link = 'axiom.trade' in url.lower() or link_type == 'Axiom Trading'
-            
-            if is_axiom_link:
-                # Para links do Axiom, cria hiperlink na palavra AXIOM
-                line = f"{tree_char} <a href=\"{url}\">AXIOM</a> Trading"
-            else:
-                # Usa URL direta que o Telegram detecta automaticamente como link
-                line = f"{tree_char} {link_type} ({url})"
+            # Usa URL direta que o Telegram detecta automaticamente como link
+            line = f"{tree_char} {link_type} ({url})"
             
             # Adiciona descrição apenas se for análise de IA (não para Axiom)
+            is_axiom_link = 'axiom.trade' in url.lower() or link_type == 'Axiom Trading'
             has_real_description = description and description != f"Link do tipo {link_type}" and len(description) > 3
             
             if has_real_description and not is_axiom_link:
