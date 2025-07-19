@@ -21,6 +21,55 @@ class SimilarityBot:
         self.database = TokenDatabase()
         self.parser = MessageParser()
         self.similarity_calculator = SimilarityCalculator()
+    
+    def _validate_html_message(self, message: str) -> str:
+        """Valida e corrige HTML na mensagem antes de enviar"""
+        if not message:
+            return ""
+        
+        # Remove tags HTML malformadas ou vazias
+        import re
+        
+        # Corrige tags <a> com atributos vazios
+        message = re.sub(r'<a\s+href="\s*"[^>]*>', '', message)
+        message = re.sub(r'<a\s+href=""[^>]*>', '', message)
+        
+        # Corrige tags <a> sem href
+        message = re.sub(r'<a\s*>', '', message)
+        message = re.sub(r'</a>', '', message)
+        
+        # Remove tags <a> órfãs (só abertura ou só fechamento)
+        # Conta abertura e fechamento para balancear
+        open_tags = message.count('<a ')
+        close_tags = message.count('</a>')
+        
+        if open_tags != close_tags:
+            # Se desbalanceado, remove todas as tags <a> problemáticas
+            message = re.sub(r'<a[^>]*>', '', message)
+            message = re.sub(r'</a>', '', message)
+        
+        # Sanitiza caracteres problemáticos em URLs
+        def fix_href_attributes(match):
+            full_tag = match.group(0)
+            href_content = match.group(1) if match.groups() else ""
+            
+            if not href_content or href_content.strip() == "":
+                return ""  # Remove tag vazia
+            
+            # Limpa a URL
+            href_content = href_content.strip()
+            href_content = href_content.replace(' ', '%20')
+            href_content = ''.join(char for char in href_content if ord(char) >= 32)
+            
+            # Reconstrói a tag
+            return full_tag.replace(match.group(1), href_content) if match.groups() else full_tag
+        
+        message = re.sub(r'<a\s+href="([^"]*)"', fix_href_attributes, message)
+        
+        # Remove linhas vazias excessivas
+        message = re.sub(r'\n\s*\n\s*\n', '\n\n', message)
+        
+        return message
         
     async def handle_message(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
         """Manipula mensagens recebidas nos grupos"""
@@ -356,10 +405,13 @@ class SimilarityBot:
             
             formatted_message = '\n'.join(formatted_lines)
             
+            # Valida e sanitiza HTML antes de enviar
+            validated_message = self._validate_html_message(formatted_message)
+            
             # Envia usando HTML parse mode
             await context.bot.send_message(
                 chat_id=Config.NOTIFICATION_GROUP_ID,
-                text=formatted_message,
+                text=validated_message,
                 parse_mode='HTML'
             )
             
@@ -571,6 +623,7 @@ class SimilarityBot:
             f"📋 `/cas` - Lista todos os contratos salvos\n"
             f"💾 `/backup` - Cria backup do banco de dados\n"
             f"🔄 `/restore` - Restaura banco de dados a partir de backup\n"
+            f"🤖 `/ailinks` - Gerencia análise de IA dos social links\n"
             f"🆔 `/getid` - Mostra ID e informações do grupo atual\n"
             f"❓ `/help` - Mostra esta mensagem de ajuda\n\n"
             f"⚙️ **FUNCIONAMENTO:**\n\n"
@@ -1170,6 +1223,98 @@ NOTIFICATION_GROUP_ID={chat_id}
             logger.error(f"Erro no comando restore: {e}")
             await update.message.reply_text("❌ Erro interno ao restaurar backup do banco de dados.")
 
+    async def ailinks_command(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
+        """Comando para gerenciar análise de IA dos social links"""
+        if not update.message:
+            return
+        
+        try:
+            # Obtém argumentos do comando
+            args = context.args
+            
+            if not args:
+                # Mostra status atual
+                ai_enabled = self.similarity_calculator.is_ai_links_enabled()
+                ai_configured = bool(self.similarity_calculator.ai_link_analyzer.openai_api_key)
+                
+                status_emoji = "✅" if ai_enabled else "❌"
+                config_emoji = "✅" if ai_configured else "❌"
+                
+                status_text = (
+                    f"🤖 **ANÁLISE DE IA DOS SOCIAL LINKS**\n\n"
+                    f"📊 **Status atual:**\n"
+                    f"   {status_emoji} Análise de IA: {'HABILITADA' if ai_enabled else 'DESABILITADA'}\n"
+                    f"   {config_emoji} OpenAI configurada: {'SIM' if ai_configured else 'NÃO'}\n\n"
+                    f"💡 **Como usar:**\n"
+                    f"   • `/ailinks on` - Habilita análise de IA\n"
+                    f"   • `/ailinks off` - Desabilita análise de IA\n\n"
+                    f"⚙️ **Configuração:**\n"
+                    f"   Para habilitar, adicione OPENAI_API_KEY no arquivo .env\n\n"
+                    f"🎯 **O que faz:**\n"
+                    f"   Analisa automaticamente links do Twitter/X e outros\n"
+                    f"   social links, fornecendo descrições inteligentes"
+                )
+                
+                await update.message.reply_text(status_text, parse_mode='Markdown')
+                return
+            
+            # Processa comando
+            comando = args[0].lower()
+            
+            # Aliases para habilitar
+            habilitar_aliases = ['on', 'ativar', 'habilitar', 'enable', '1', 'true', 'sim']
+            # Aliases para desabilitar  
+            desabilitar_aliases = ['off', 'desativar', 'desabilitar', 'disable', '0', 'false', 'nao', 'não']
+            
+            if comando in habilitar_aliases:
+                # Verifica se OpenAI está configurada
+                if not self.similarity_calculator.ai_link_analyzer.openai_api_key:
+                    await update.message.reply_text(
+                        "❌ **OpenAI API não configurada!**\n\n"
+                        "🔧 **Para habilitar a análise de IA:**\n"
+                        "1. Adicione OPENAI_API_KEY=sua_chave no arquivo .env\n"
+                        "2. Reinicie o bot\n"
+                        "3. Execute `/ailinks on` novamente\n\n"
+                        "💡 **Obtenha sua chave em:** https://platform.openai.com/api-keys",
+                        parse_mode='Markdown'
+                    )
+                    return
+                
+                self.similarity_calculator.set_ai_links_enabled(True)
+                await update.message.reply_text(
+                    "✅ **Análise de IA HABILITADA!**\n\n"
+                    "🤖 Os social links agora serão analisados automaticamente\n"
+                    "📝 Descrições inteligentes serão geradas para cada link\n\n"
+                    "🎯 **Teste:** Envie um token com social links para ver o resultado!",
+                    parse_mode='Markdown'
+                )
+                
+            elif comando in desabilitar_aliases:
+                self.similarity_calculator.set_ai_links_enabled(False)
+                await update.message.reply_text(
+                    "❌ **Análise de IA DESABILITADA**\n\n"
+                    "📋 Os social links voltarão ao formato padrão\n"
+                    "🔄 Para reabilitar, use `/ailinks on`",
+                    parse_mode='Markdown'
+                )
+                
+            else:
+                await update.message.reply_text(
+                    "❓ **Comando inválido!**\n\n"
+                    "💡 **Comandos válidos:**\n"
+                    "   • `/ailinks` - Mostra status\n"
+                    "   • `/ailinks on` - Habilita análise\n"
+                    "   • `/ailinks off` - Desabilita análise\n\n"
+                    "📋 **Aliases aceitos:**\n"
+                    "   • **Habilitar:** on, ativar, habilitar, enable\n"
+                    "   • **Desabilitar:** off, desativar, desabilitar, disable",
+                    parse_mode='Markdown'
+                )
+                
+        except Exception as e:
+            logger.error(f"Erro no comando ailinks: {e}")
+            await update.message.reply_text("❌ Erro interno no comando de análise de IA.")
+
     async def error_handler(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
         """Manipula erros do bot"""
         logger.error(f"Erro no update {update}: {context.error}")
@@ -1203,6 +1348,7 @@ def main():
     application.add_handler(CommandHandler("cas", bot.cas_command)) # Adicionado handler para /cas
     application.add_handler(CommandHandler("backup", bot.backup_command)) # Adicionado handler para /backup
     application.add_handler(CommandHandler("restore", bot.restore_command)) # Adicionado handler para /restore
+    application.add_handler(CommandHandler("ailinks", bot.ailinks_command)) # Adicionado handler para /ailinks
     application.add_handler(MessageHandler(
         filters.TEXT & ~filters.COMMAND, 
         bot.handle_message

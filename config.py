@@ -17,3 +17,7 @@ class Config:
     
     # Configurações do banco de dados
     DATABASE_FILE = 'token_database.db' 
+    
+    # Configurações da IA para análise de links
+    OPENAI_API_KEY = os.getenv('OPENAI_API_KEY')
+    AI_LINKS_ENABLED = True  # Estado padrão da análise de IA 

@@ -1,9 +1,16 @@
 import json
 import re
 from typing import Dict, List, Any, Tuple, Optional
+from ai_link_analyzer import AILinkAnalyzer
+from config import Config
+import asyncio
 
 class SimilarityCalculator:
     def __init__(self):
+        # Inicializa o analisador de IA para links
+        self.ai_link_analyzer = AILinkAnalyzer()
+        self.ai_links_enabled = Config.AI_LINKS_ENABLED
+        
         # Agrupamento de campos por seção
         self.section_fields = {
             'market_overview': ['market_cap', 'price_change', 'traders', 'buy_volume', 'sell_volume', 
@@ -571,12 +578,72 @@ class SimilarityCalculator:
         
         return '\n'.join(report_lines)
     
-    def get_social_links_section(self, current_message: str, message_entities: Optional[List] = None) -> str:
-        """Copia a seção completa de Social Links da mensagem original e aplica hiperlinks invisíveis"""
+    def set_ai_links_enabled(self, enabled: bool) -> None:
+        """Habilita ou desabilita a análise de IA para links"""
+        self.ai_links_enabled = enabled
+    
+    def is_ai_links_enabled(self) -> bool:
+        """Retorna se a análise de IA está habilitada"""
+        return self.ai_links_enabled and self.ai_link_analyzer.enabled
+    
+    async def get_social_links_section_async(self, current_message: str, message_entities: Optional[List] = None) -> str:
+        """Versão assíncrona que usa análise de IA quando habilitada"""
         if not current_message:
             return ""
         
         # Procura e copia a seção completa de Social Links
+        social_section_match = re.search(r'(🌐\s*Social Links:.*?)(?=\n\n|\n[📊📈👥🔍]|$)', current_message, re.DOTALL)
+        if not social_section_match:
+            return ""
+        
+        social_links_text = social_section_match.group(1).strip()
+        
+        # Se há entidades de mensagem, aplica hiperlinks invisíveis
+        if message_entities:
+            social_links_with_entities = self._apply_invisible_hyperlinks(social_links_text, current_message, message_entities)
+            if social_links_with_entities:
+                social_links_text = social_links_with_entities
+        
+        # Se análise de IA está habilitada, usa IA para analisar os links
+        if self.is_ai_links_enabled():
+            try:
+                ai_analyzed_section = await self.ai_link_analyzer.analyze_social_links_section(social_links_text)
+                if ai_analyzed_section:
+                    return ai_analyzed_section
+            except Exception as e:
+                import logging
+                logger = logging.getLogger(__name__)
+                logger.error(f"❌ Erro na análise de IA: {e}")
+                # Continua com processamento normal em caso de erro
+        
+        # Converte URLs visíveis em hiperlinks HTML clicáveis (modo padrão)
+        return self._convert_urls_to_hyperlinks(social_links_text)
+    
+    def get_social_links_section(self, current_message: str, message_entities: Optional[List] = None) -> str:
+        """Wrapper síncrono que usa análise de IA quando habilitada"""
+        if not current_message:
+            return ""
+        
+        # Se análise de IA está habilitada, executa versão assíncrona
+        if self.is_ai_links_enabled():
+            try:
+                loop = asyncio.get_event_loop()
+                if loop.is_running():
+                    # Se já há um loop rodando, cria uma nova task
+                    import concurrent.futures
+                    with concurrent.futures.ThreadPoolExecutor() as executor:
+                        future = executor.submit(asyncio.run, self.get_social_links_section_async(current_message, message_entities))
+                        return future.result(timeout=30)  # Timeout de 30 segundos
+                else:
+                    # Se não há loop, executa normalmente
+                    return asyncio.run(self.get_social_links_section_async(current_message, message_entities))
+            except Exception as e:
+                import logging
+                logger = logging.getLogger(__name__)
+                logger.error(f"❌ Erro executando análise de IA síncrona: {e}")
+                # Fallback para processamento padrão
+        
+        # Processamento padrão (sem IA)
         social_section_match = re.search(r'(🌐\s*Social Links:.*?)(?=\n\n|\n[📊📈👥🔍]|$)', current_message, re.DOTALL)
         if not social_section_match:
             return ""
@@ -668,38 +735,74 @@ class SimilarityCalculator:
         logger.info(f"🎯 DEBUG: Total de links aplicados: {applied_links}")
         return result_text
     
+    def _sanitize_url_for_html(self, url: str) -> str:
+        """Sanitiza URL para uso seguro em atributos HTML"""
+        if not url:
+            return ""
+        
+        url = url.strip()
+        # Escapa caracteres problemáticos em URLs
+        url = url.replace('"', '%22')
+        url = url.replace("'", '%27')
+        url = url.replace(' ', '%20')
+        # Remove possíveis caracteres de controle
+        url = ''.join(char for char in url if ord(char) >= 32)
+        
+        return url
+    
+    def _sanitize_text_for_html(self, text: str) -> str:
+        """Sanitiza texto para uso seguro dentro de tags HTML"""
+        if not text:
+            return ""
+        
+        text = text.strip()
+        # Escapa caracteres HTML básicos
+        text = text.replace('&', '&amp;')
+        text = text.replace('<', '&lt;')
+        text = text.replace('>', '&gt;')
+        text = text.replace('"', '&quot;')
+        text = text.replace("'", '&#x27;')
+        
+        return text
+    
     def _convert_urls_to_hyperlinks(self, text: str) -> str:
-        """Converte URLs em texto para hiperlinks HTML clicáveis - detecta múltiplos formatos"""
+        """Converte URLs em texto para hiperlinks HTML clicáveis com sanitização robusta"""
+        if not text:
+            return ""
+            
         result = text
         
-        # 1. Corrigir "Perfil" órfão ANTES de converter URLs - derivar URL do perfil a partir da URL do Twitter
+        # 1. Corrigir "Perfil" órfão ANTES de converter URLs
         result = self._fix_orphan_profile_links(result)
         
         # 2. Detectar e converter links markdown [texto](url)
         markdown_pattern = r'\[([^\]]+)\]\((https?://[^\)]+)\)'
         def replace_markdown(match):
-            texto = match.group(1)
-            url = match.group(2)
+            texto = self._sanitize_text_for_html(match.group(1))
+            url = self._sanitize_url_for_html(match.group(2))
+            if not texto or not url:
+                return match.group(0)  # Retorna original se houver problema
             return f'<a href="{url}">{texto}</a>'
         result = re.sub(markdown_pattern, replace_markdown, result)
         
-        # 3. Detectar e converter URLs em parênteses (url) - apenas se não foram processadas como markdown
+        # 3. Detectar e converter URLs em parênteses (url)
         parentheses_pattern = r'\((https?://[^\)]+)\)'
         def replace_parentheses(match):
-            url = match.group(1)
+            url = self._sanitize_url_for_html(match.group(1))
+            if not url:
+                return match.group(0)  # Retorna original se houver problema
             return f'(<a href="{url}">{url}</a>)'
         # Só aplicar se não há links markdown processados
         if '[' not in text or '](' not in text:
             result = re.sub(parentheses_pattern, replace_parentheses, result)
         
-        # 4. Preservar links HTML existentes (não modificar)
-        # Links HTML já estão no formato correto: <a href="url">texto</a>
-        
-        # 5. Detectar URLs soltas e converter (apenas se não estão dentro de tags HTML ou já processadas)
+        # 4. Detectar URLs soltas e converter (apenas se não estão dentro de tags HTML)
         if '<a href=' not in result:
             loose_url_pattern = r'(https?://[^\s<>()]+)'
             def replace_loose_url(match):
-                url = match.group(1)
+                url = self._sanitize_url_for_html(match.group(1))
+                if not url:
+                    return match.group(0)  # Retorna original se houver problema
                 return f'<a href="{url}">{url}</a>'
             result = re.sub(loose_url_pattern, replace_loose_url, result)
         
