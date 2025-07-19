@@ -64,7 +64,7 @@ class AILinkAnalyzer:
         elif 't.co' in domain:
             return 'Shortened Link'
         elif 'axiom.trade' in domain:
-            return 'Axiom Trading'
+            return 'Axion'
         elif any(word in domain for word in ['website', 'site', 'www']):
             return 'Website'
         elif any(ext in domain for ext in ['.com', '.org', '.net', '.io', '.co', '.info', '.news']):
@@ -87,7 +87,7 @@ class AILinkAnalyzer:
                 link_type = link_info['type']
                 
                 # Verifica se é link do Axiom - se for, mantém formato padrão
-                if 'axiom.trade' in url.lower() or link_type == 'Axiom Trading':
+                if 'axiom.trade' in url.lower() or link_type == 'Axion':
                     logger.info(f"🚫 Link do Axiom excluído da análise de IA: {url}")
                     analyzed_links.append({
                         'url': url,
@@ -217,7 +217,7 @@ Descrição:"""
         has_ai_analyzed = any(
             link_info.get('description', '') != f"Link do tipo {link_info.get('type', '')}" and 
             'axiom.trade' not in link_info.get('url', '').lower() and
-            link_info.get('type', '') != 'Axiom Trading'
+            link_info.get('type', '') != 'Axion'
             for link_info in links
         )
         
@@ -240,11 +240,14 @@ Descrição:"""
                 continue
                 
             # Formata a linha com link clicável e descrição
-            # Usa URL direta que o Telegram detecta automaticamente como link
-            line = f"{tree_char} {link_type} ({url})"
+            # Para Axion, usa hiperlink HTML. Para outros, usa URL direta que o Telegram detecta automaticamente
+            if link_type == 'Axion':
+                line = f"{tree_char} <a href=\"{url}\">Axion</a>"
+            else:
+                line = f"{tree_char} {link_type} ({url})"
             
             # Adiciona descrição apenas se for análise de IA (não para Axiom)
-            is_axiom_link = 'axiom.trade' in url.lower() or link_type == 'Axiom Trading'
+            is_axiom_link = 'axiom.trade' in url.lower() or link_type == 'Axion'
             has_real_description = description and description != f"Link do tipo {link_type}" and len(description) > 3
             
             if has_real_description and not is_axiom_link:

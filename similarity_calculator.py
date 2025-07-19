@@ -700,7 +700,7 @@ class SimilarityCalculator:
                 if 'twitter' in entity.url.lower() or 'x.com' in entity.url.lower():
                     potential_matches = ['Twitter', 'Perfil', 'Profile']
                 elif 'axiom' in entity.url.lower():
-                    potential_matches = ['AXI', 'Axiom']
+                    potential_matches = ['AXI', 'Axion']
                 elif 'telegram' in entity.url.lower():
                     potential_matches = ['Telegram', 'TG']
                 else:
@@ -791,12 +791,27 @@ class SimilarityCalculator:
             url = self._sanitize_url_for_html(match.group(1))
             if not url:
                 return match.group(0)  # Retorna original se houver problema
-            return f'(<a href="{url}">{url}</a>)'
+            
+            # Tratamento especial para links do Axiom - só mostra "Axion" como hiperlink
+            if 'axiom.trade' in url.lower():
+                return f'<a href="{url}">Axion</a>'
+            else:
+                return f'(<a href="{url}">{url}</a>)'
         # Só aplicar se não há links markdown processados
         if '[' not in text or '](' not in text:
             result = re.sub(parentheses_pattern, replace_parentheses, result)
         
-        # 4. Detectar URLs soltas e converter (apenas se não estão dentro de tags HTML)
+        # 4. Tratamento especial para linhas AXI com Axiom - converte para hiperlink "Axion"
+        axi_axiom_pattern = r'(├|└)\s*AXI\s*\(([^)]*axiom\.trade[^)]*)\)'
+        def replace_axi_axiom(match):
+            tree_char = match.group(1)
+            url = self._sanitize_url_for_html(match.group(2))
+            if not url:
+                return match.group(0)  # Retorna original se houver problema
+            return f'{tree_char} <a href="{url}">Axion</a>'
+        result = re.sub(axi_axiom_pattern, replace_axi_axiom, result, flags=re.IGNORECASE)
+        
+        # 5. Detectar URLs soltas e converter (apenas se não estão dentro de tags HTML)
         if '<a href=' not in result:
             loose_url_pattern = r'(https?://[^\s<>()]+)'
             def replace_loose_url(match):
