@@ -769,6 +769,10 @@ class SimilarityCalculator:
         """Converte URLs em texto para hiperlinks HTML clicáveis com sanitização robusta"""
         if not text:
             return ""
+        
+        # Se o texto já contém links HTML processados (especialmente Axion), não processa novamente
+        if '<a href=' in text and 'Axion</a>' in text:
+            return text
             
         result = text
         
@@ -785,31 +789,33 @@ class SimilarityCalculator:
             return f'<a href="{url}">{texto}</a>'
         result = re.sub(markdown_pattern, replace_markdown, result)
         
-        # 3. Detectar e converter URLs em parênteses (url)
-        parentheses_pattern = r'\((https?://[^\)]+)\)'
-        def replace_parentheses(match):
-            url = self._sanitize_url_for_html(match.group(1))
-            if not url:
-                return match.group(0)  # Retorna original se houver problema
-            
-            # Tratamento especial para links do Axiom - só mostra "Axion" como hiperlink
-            if 'axiom.trade' in url.lower():
-                return f'<a href="{url}">Axion</a>'
-            else:
-                return f'(<a href="{url}">{url}</a>)'
-        # Só aplicar se não há links markdown processados
-        if '[' not in text or '](' not in text:
-            result = re.sub(parentheses_pattern, replace_parentheses, result)
+        # 3. Detectar e converter URLs em parênteses (url) - apenas se não há links HTML já processados
+        if '<a href=' not in result:
+            parentheses_pattern = r'\((https?://[^\)]+)\)'
+            def replace_parentheses(match):
+                url = self._sanitize_url_for_html(match.group(1))
+                if not url:
+                    return match.group(0)  # Retorna original se houver problema
+                
+                # Tratamento especial para links do Axiom - só mostra "Axion" como hiperlink
+                if 'axiom.trade' in url.lower():
+                    return f'<a href="{url}">Axion</a>'
+                else:
+                    return f'(<a href="{url}">{url}</a>)'
+            # Só aplicar se não há links markdown processados
+            if '[' not in text or '](' not in text:
+                result = re.sub(parentheses_pattern, replace_parentheses, result)
         
-        # 4. Tratamento especial para linhas AXI com Axiom - converte para hiperlink "Axion"
-        axi_axiom_pattern = r'(├|└)\s*AXI\s*\(([^)]*axiom\.trade[^)]*)\)'
-        def replace_axi_axiom(match):
-            tree_char = match.group(1)
-            url = self._sanitize_url_for_html(match.group(2))
-            if not url:
-                return match.group(0)  # Retorna original se houver problema
-            return f'{tree_char} <a href="{url}">Axion</a>'
-        result = re.sub(axi_axiom_pattern, replace_axi_axiom, result, flags=re.IGNORECASE)
+        # 4. Tratamento especial para linhas AXI com Axiom - converte para hiperlink "Axion" (apenas se não há links HTML já)
+        if '<a href=' not in result:
+            axi_axiom_pattern = r'(├|└)\s*AXI\s*\(([^)]*axiom\.trade[^)]*)\)'
+            def replace_axi_axiom(match):
+                tree_char = match.group(1)
+                url = self._sanitize_url_for_html(match.group(2))
+                if not url:
+                    return match.group(0)  # Retorna original se houver problema
+                return f'{tree_char} <a href="{url}">Axion</a>'
+            result = re.sub(axi_axiom_pattern, replace_axi_axiom, result, flags=re.IGNORECASE)
         
         # 5. Detectar URLs soltas e converter (apenas se não estão dentro de tags HTML)
         if '<a href=' not in result:
