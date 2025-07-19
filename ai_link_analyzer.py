@@ -110,8 +110,8 @@ class AILinkAnalyzer:
                 url = link_info['url']
                 link_type = link_info['type']
                 
-                # Verifica se é link do Axiom ou Twitter Post - se for, mantém formato padrão
-                if 'axiom.trade' in url.lower() or link_type == 'Axiom Trading' or link_type == 'Twitter Post':
+                # Verifica se é link do Axiom, Twitter Post ou Twitter Profile - se for, mantém formato padrão
+                if 'axiom.trade' in url.lower() or link_type == 'Axiom Trading' or link_type == 'Twitter Post' or link_type == 'Twitter Profile':
                     logger.info(f"🚫 Link excluído da análise de IA: {url} (tipo: {link_type})")
                     analyzed_links.append({
                         'url': url,
@@ -237,12 +237,13 @@ Descrição:"""
         if not links:
             return ""
         
-        # Verifica se há links analisados pela IA (não-Axiom e não-Twitter Post)
+        # Verifica se há links analisados pela IA (não-Axiom, não-Twitter Post e não-Twitter Profile)
         has_ai_analyzed = any(
             link_info.get('description', '') != f"Link do tipo {link_info.get('type', '')}" and 
             'axiom.trade' not in link_info.get('url', '').lower() and
             link_info.get('type', '') != 'Axiom Trading' and
-            link_info.get('type', '') != 'Twitter Post'
+            link_info.get('type', '') != 'Twitter Post' and
+            link_info.get('type', '') != 'Twitter Profile'
             for link_info in links
         )
         
@@ -267,6 +268,7 @@ Descrição:"""
             # Formata a linha com link clicável e descrição
             is_axiom_link = 'axiom.trade' in url.lower() or link_type == 'Axiom Trading'
             is_twitter_post = link_type == 'Twitter Post'
+            is_twitter_profile = link_type == 'Twitter Profile'
             
             if is_axiom_link:
                 # Para links do Axiom, cria hiperlink apenas na palavra Axiom
@@ -274,14 +276,17 @@ Descrição:"""
             elif is_twitter_post:
                 # Para Twitter Posts, cria hiperlink na frase "Twitter Post"
                 line = f"{tree_char} <a href=\"{url}\">Twitter Post</a>"
+            elif is_twitter_profile:
+                # Para Twitter Profiles, cria hiperlink na frase "Twitter Profile"
+                line = f"{tree_char} <a href=\"{url}\">Twitter Profile</a>"
             else:
                 # Usa URL direta que o Telegram detecta automaticamente como link
                 line = f"{tree_char} {link_type} ({url})"
             
-            # Adiciona descrição apenas se for análise de IA (não para Axiom nem Twitter Post)
+            # Adiciona descrição apenas se for análise de IA (não para Axiom, Twitter Post nem Twitter Profile)
             has_real_description = description and description != f"Link do tipo {link_type}" and len(description) > 3
             
-            if has_real_description and not is_axiom_link and not is_twitter_post:
+            if has_real_description and not is_axiom_link and not is_twitter_post and not is_twitter_profile:
                 line += f" - {description}"
             
             formatted_lines.append(line)
