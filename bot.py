@@ -27,46 +27,8 @@ class SimilarityBot:
         if not message:
             return ""
         
-        # Remove tags HTML malformadas ou vazias
-        import re
-        
-        # Corrige tags <a> com atributos vazios
-        message = re.sub(r'<a\s+href="\s*"[^>]*>', '', message)
-        message = re.sub(r'<a\s+href=""[^>]*>', '', message)
-        
-        # Corrige tags <a> sem href
-        message = re.sub(r'<a\s*>', '', message)
-        message = re.sub(r'</a>', '', message)
-        
-        # Remove tags <a> órfãs (só abertura ou só fechamento)
-        # Conta abertura e fechamento para balancear
-        open_tags = message.count('<a ')
-        close_tags = message.count('</a>')
-        
-        if open_tags != close_tags:
-            # Se desbalanceado, remove todas as tags <a> problemáticas
-            message = re.sub(r'<a[^>]*>', '', message)
-            message = re.sub(r'</a>', '', message)
-        
-        # Sanitiza caracteres problemáticos em URLs
-        def fix_href_attributes(match):
-            full_tag = match.group(0)
-            href_content = match.group(1) if match.groups() else ""
-            
-            if not href_content or href_content.strip() == "":
-                return ""  # Remove tag vazia
-            
-            # Limpa a URL
-            href_content = href_content.strip()
-            href_content = href_content.replace(' ', '%20')
-            href_content = ''.join(char for char in href_content if ord(char) >= 32)
-            
-            # Reconstrói a tag
-            return full_tag.replace(match.group(1), href_content) if match.groups() else full_tag
-        
-        message = re.sub(r'<a\s+href="([^"]*)"', fix_href_attributes, message)
-        
         # Remove linhas vazias excessivas
+        import re
         message = re.sub(r'\n\s*\n\s*\n', '\n\n', message)
         
         return message
@@ -333,8 +295,10 @@ class SimilarityBot:
                         'Lado esquerdo ATUAL direito BANCO DE DADOS'
                     ])
                     
-                    # Verifica se é uma linha de social links com hiperlinks HTML
-                    is_social_link_line = '<a href=' in line
+                    # Verifica se é uma linha de social links
+                    is_social_link_line = ('🌐 Social Links' in line or
+                                         ('├' in line and ('http://' in line or 'https://' in line)) or
+                                         ('└' in line and ('http://' in line or 'https://' in line)))
                     
                     # Escapa caracteres HTML perigosos (exceto para linhas de similaridade e social links)
                     if is_similarity_line or is_social_link_line:
@@ -390,14 +354,18 @@ class SimilarityBot:
                     else:
                         # Outras linhas com formatação monospace
                         # Tratamento especial para linhas com ├ e └ - mantém caracteres em formatação normal
-                        if line_trimmed.startswith('├'):
+                        # EXCETO para social links que devem preservar HTML
+                        if line_trimmed.startswith('├') and not is_social_link_line:
                             # Remove ├ do início e aplica formatação monospace apenas ao resto
                             content_without_prefix = escaped_line.lstrip().lstrip('├').strip()
                             formatted_lines.append(f'├ <code>{content_without_prefix}</code>')
-                        elif line_trimmed.startswith('└'):
+                        elif line_trimmed.startswith('└') and not is_social_link_line:
                             # Remove └ do início e aplica formatação monospace apenas ao resto
                             content_without_prefix = escaped_line.lstrip().lstrip('└').strip()
                             formatted_lines.append(f'└ <code>{content_without_prefix}</code>')
+                        elif is_social_link_line:
+                            # Social links preservam HTML sem formatação monospace
+                            formatted_lines.append(escaped_line)
                         else:
                             formatted_lines.append(f'<code>{escaped_line}</code>')
                 else:

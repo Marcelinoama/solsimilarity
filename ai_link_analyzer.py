@@ -67,6 +67,9 @@ class AILinkAnalyzer:
             return 'Axiom Trading'
         elif any(word in domain for word in ['website', 'site', 'www']):
             return 'Website'
+        elif any(ext in domain for ext in ['.com', '.org', '.net', '.io', '.co', '.info', '.news']):
+            # Identifica websites comuns por extensão de domínio
+            return 'Website'
         else:
             return 'Link'
     
@@ -237,7 +240,8 @@ Descrição:"""
                 continue
                 
             # Formata a linha com link clicável e descrição
-            line = f"{tree_char} <a href=\"{url}\">{link_type}</a>"
+            # Usa URL direta que o Telegram detecta automaticamente como link
+            line = f"{tree_char} {link_type} ({url})"
             
             # Adiciona descrição apenas se for análise de IA (não para Axiom)
             is_axiom_link = 'axiom.trade' in url.lower() or link_type == 'Axiom Trading'
